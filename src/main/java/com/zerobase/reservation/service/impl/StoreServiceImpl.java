@@ -31,7 +31,7 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     public List<Store> getStoresByCategory(Long categoryId) {
-        return storeRepository.findByCategory_Id(categoryId);
+        return storeRepository.findByStoreCategory_Id(categoryId);
     }
 
     @Override
@@ -40,7 +40,7 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
-    public Optional<StoreCategory> findStoreCategoryByName(String name) {
-        return storeCategoryRepository.findByName();
+    public Optional<StoreCategory> findByName(String name) {
+        return storeCategoryRepository.findByName(name);
     }
 }

@@ -7,6 +7,6 @@ import java.util.Optional;
 
 public interface StoreCategoryRepository extends JpaRepository<StoreCategory, Long> {
 
-    Optional<StoreCategory> findByName();
+    Optional<StoreCategory> findByName(String name);
 
 }

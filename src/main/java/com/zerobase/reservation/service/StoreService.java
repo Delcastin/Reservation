@@ -16,5 +16,5 @@ public interface StoreService {
 
     List<Store> getStoresByPartner(Long partnerId);
 
-    Optional<StoreCategory> findStoreCategoryByName(String name);
+    Optional<StoreCategory> findByName(String name);
 }

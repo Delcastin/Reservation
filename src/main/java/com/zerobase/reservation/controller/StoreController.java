@@ -55,7 +55,7 @@ public class StoreController {
         // 파트너 조회
         Partner partner = partnerService.findById(request.getPartnerId());
         // 카테고리 조회
-        Optional<StoreCategory> categoryOpt = storeService.findStoreCategoryByName(request.getCategoryId().toString());
+        Optional<StoreCategory> categoryOpt = storeService.findByName(request.getCategoryId().toString());
 
         if (categoryOpt.isEmpty()) {
             return ResponseEntity.badRequest().build();
