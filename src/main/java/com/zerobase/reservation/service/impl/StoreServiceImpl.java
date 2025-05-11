@@ -43,4 +43,26 @@ public class StoreServiceImpl implements StoreService {
     public Optional<StoreCategory> findByName(String name) {
         return storeCategoryRepository.findByName(name);
     }
+
+    @Override
+    public Store updateStore(Long storeId, Store updateStore) {
+        Store existingStore = storeRepository.findById(storeId)
+                .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
+
+        existingStore.setName(updateStore.getName());
+        existingStore.setAddress(updateStore.getAddress());
+        existingStore.setDescription(updateStore.getDescription());
+        existingStore.setStoreCategory(updateStore.getStoreCategory());
+        return storeRepository.save(existingStore);
+    }
+
+    @Override
+    public void deleteStore(Long storeId) {
+
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new IllegalArgumentException("매장을 찾을 수 없습니다."));
+
+        storeRepository.delete(store);
+
+    }
 }

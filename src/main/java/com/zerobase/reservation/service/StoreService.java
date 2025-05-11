@@ -17,4 +17,8 @@ public interface StoreService {
     List<Store> getStoresByPartner(Long partnerId);
 
     Optional<StoreCategory> findByName(String name);
+
+    Store updateStore(Long storeId, Store updateStore);
+
+    void deleteStore(Long storeId);
 }

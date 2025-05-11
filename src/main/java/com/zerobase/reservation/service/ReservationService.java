@@ -24,4 +24,6 @@ public interface ReservationService {
     boolean existsByReservationDetails(ReservationRequest reservationRequest);
 
     ReservationResponse createReservation(ReservationRequest reservationRequest);
+
+    Reservation confirmVisit(Long reservationId);
 }

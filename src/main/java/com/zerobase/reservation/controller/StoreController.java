@@ -70,5 +70,16 @@ public class StoreController {
         return ResponseEntity.ok(StoreResponse.fromStore(savedStore));
     }
 
+    @PutMapping("/stores/{id}")
+    public ResponseEntity<Store> updateStore(@PathVariable Long id, @RequestBody Store store) {
+        return ResponseEntity.ok(storeService.updateStore(id, store));
+    }
+
+    @DeleteMapping("/stores/{id}")
+    public ResponseEntity<Void> deleteStore(@PathVariable Long id) {
+        storeService.deleteStore(id);
+        return ResponseEntity.noContent().build();
+    }
+
 
 }

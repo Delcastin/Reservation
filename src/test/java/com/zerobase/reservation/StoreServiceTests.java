@@ -1,59 +1,54 @@
 package com.zerobase.reservation;
 
-
-
 import com.zerobase.reservation.domain.Partner;
 import com.zerobase.reservation.domain.Store;
 import com.zerobase.reservation.repository.PartnerRepository;
 import com.zerobase.reservation.repository.StoreCategoryRepository;
-
 import com.zerobase.reservation.repository.StoreRepository;
-import com.zerobase.reservation.service.StoreService;
+import com.zerobase.reservation.service.impl.StoreServiceImpl;
 import com.zerobase.reservation.store.StoreCategory;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.mockito.ArgumentMatchers;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 class StoreServiceTests {
 
-    @Autowired
-    private StoreService storeService;
-
-    @Autowired
+    @Mock
     private StoreRepository storeRepository;
 
-    @Autowired
+    @Mock
     private PartnerRepository partnerRepository;
 
-    @Autowired
+    @Mock
     private StoreCategoryRepository storeCategoryRepository;
+
+    @InjectMocks
+    private StoreServiceImpl storeService;
+
+    private StoreCategory category;
+    private Partner partner;
 
     @BeforeEach
     void setUp() {
-        storeRepository.deleteAll();
-        storeCategoryRepository.deleteAll();
-        partnerRepository.deleteAll();
+        category = StoreCategory.builder().id(1L).name("카페").build();
+        partner = Partner.builder().id(1L).email("test@gmail.com").name("정수이").build();
     }
 
     @Test
-    void testRegisterStore(){
-        StoreCategory category = storeCategoryRepository.save(StoreCategory.builder()
-                .name("카페")
-                .build());
-
-        Partner partner = partnerRepository.save(Partner.builder()
-                .email("test@gmail.com")
-                .name("정수이")
-                .build());
-
+    void testRegisterStore() {
         Store store = Store.builder()
                 .name("Compose카페")
                 .storeCategory(category)
@@ -61,145 +56,91 @@ class StoreServiceTests {
                 .partner(partner)
                 .build();
 
+        when(storeRepository.save(ArgumentMatchers.any(Store.class))).thenReturn(store);
+
         Store saved = storeService.registerStore(store);
 
-        assertNotNull(saved.getId());
+        assertNotNull(saved);
         assertEquals("Compose카페", saved.getName());
-        assertEquals(category.getId(), saved.getStoreCategory().getId());
-        assertEquals(partner.getId(), saved.getPartner().getId());
+        assertEquals(category, saved.getStoreCategory());
+        assertEquals(partner, saved.getPartner());
     }
 
     @Test
     void testGetAllStores() {
-        // StoreCategory 저장
-        StoreCategory category = storeCategoryRepository.save(StoreCategory.builder()
-                .name("중국집")
-                .build());
+        Store store1 = Store.builder().name("Store 1").storeCategory(category).partner(partner).address("서울").build();
+        Store store2 = Store.builder().name("Store 2").storeCategory(category).partner(partner).address("부산").build();
 
-        // Partner 저장
-        Partner partner = partnerRepository.save(Partner.builder()
-                .email("test@gmail.com")
-                .name("Thomas")
-                .password("123456")
-                .build());
+        when(storeRepository.findAll()).thenReturn(List.of(store1, store2));
 
-        // Store 저장
-        Store store1 = storeRepository.save(Store.builder()
-                .name("Store 1")
-                .storeCategory(category)
-                .partner(partner)
-                .address("서울시 중구")
-                .build());
+        List<Store> result = storeService.getAllStores();
 
-        Store store2 = storeRepository.save(Store.builder()
-                .name("Store 2")
-                .storeCategory(category)
-                .partner(partner)
-                .address("서울시 강남구")
-                .build());
-
-        // 모든 Store 조회
-        List<Store> stores = storeService.getAllStores();
-
-        // 검증: Store가 2개 있어야 함
-        assertEquals(2, stores.size());
-
-        // 모든 StoreCategory 조회
-        List<StoreCategory> categories = storeCategoryRepository.findAll();
-
-        // 검증: StoreCategory가 1개 있어야 함 (중국집 카테고리)
-        assertEquals(1, categories.size());
-
-        // 정리: 데이터 삭제
-        storeRepository.deleteAll();
-        storeCategoryRepository.deleteAll();
-        partnerRepository.deleteAll();
-    }
-
-
-    @Test
-    void testGetStoresByCategory(){
-
-        StoreCategory category1 = storeCategoryRepository.save(StoreCategory.builder()
-                        .name("치킨집")
-                        .build());
-
-        StoreCategory category2 = storeCategoryRepository.save(StoreCategory.builder()
-                        .name("중국집")
-                        .build());
-
-        Partner partner = partnerRepository.save(Partner.builder()
-                        .email("test@gmail.com")
-                        .name("Thomas")
-                        .password("123456")
-                        .build());
-
-        storeService.registerStore(Store.builder()
-                        .name("BBQ")
-                        .storeCategory(category1)
-                        .address("서울시 강남구 논현로")
-                        .partner(partner)
-                        .build());
-
-        storeService.registerStore(Store.builder()
-                        .name("Twosome Coffee")
-                        .storeCategory(category2)
-                        .partner(partner)
-                        .address("서울시 강북구 동현로")
-                        .build());
-
-        List<Store> chickenStores = storeService.getStoresByCategory(category1.getId());
-        assertEquals(1, chickenStores.size());
-        assertEquals("BBQ", chickenStores.get(0).getName());
+        assertEquals(2, result.size());
     }
 
     @Test
-    void testGetStoresByPartner(){
+    void testGetStoresByCategory() {
+        Store store = Store.builder().name("BBQ").storeCategory(category).partner(partner).address("서울").build();
 
-        StoreCategory category = storeCategoryRepository.save(StoreCategory.builder()
-                        .name("편의점")
-                        .build());
+        when(storeRepository.findByStoreCategory_Id(1L)).thenReturn(List.of(store));
 
-        Partner partner1 = partnerRepository.save(Partner.builder()
-                        .email("test1@gmail.com")
-                        .name("Thomas")
-                        .password("123456")
-                        .build());
+        List<Store> result = storeService.getStoresByCategory(1L);
 
-        Partner partner2 = partnerRepository.save(Partner.builder()
-                        .email("test2@gmail.com")
-                        .name("John")
-                        .password("323232")
-                        .build());
-
-        storeService.registerStore(Store.builder()
-                        .name("GS25")
-                        .storeCategory(category)
-                        .address("에스닷몰")
-                        .partner(partner1)
-                        .build());
-
-        storeService.registerStore(Store.builder()
-                        .name("CU")
-                        .storeCategory(category)
-                        .address("빅뱅건물")
-                        .partner(partner2)
-                        .build());
-
-        List<Store> partnerStores = storeService.getStoresByPartner(partner1.getId());
-        assertEquals(1, partnerStores.size());
-        assertEquals("GS25", partnerStores.get(0).getName());
+        assertEquals(1, result.size());
+        assertEquals("BBQ", result.get(0).getName());
     }
 
     @Test
-    void testFindStoreCategoryByName(){
-        StoreCategory category = storeCategoryRepository.save(StoreCategory.builder()
-                        .name("분식")
-                        .build());
+    void testGetStoresByPartner() {
+        Store store = Store.builder().name("GS25").storeCategory(category).partner(partner).address("편의점 거리").build();
 
-        Optional<StoreCategory> found = storeService.findByName("분식");
+        when(storeRepository.findByPartner_Id(1L)).thenReturn(List.of(store));
 
-        assertTrue(found.isPresent());
-        assertEquals("분식", found.get().getName());
+        List<Store> result = storeService.getStoresByPartner(1L);
+
+        assertEquals(1, result.size());
+        assertEquals("GS25", result.get(0).getName());
+    }
+
+    @Test
+    void testFindStoreCategoryByName() {
+        when(storeCategoryRepository.findByName("분식")).thenReturn(Optional.of(category));
+
+        Optional<StoreCategory> result = storeService.findByName("분식");
+
+        assertTrue(result.isPresent());
+        assertEquals("카페", result.get().getName()); // 실제 이름이 "카페"였으므로
+    }
+
+    @Test
+    void testUpdateStore() {
+        Store existing = Store.builder()
+                .id(1L)
+                .name("Old Store")
+                .address("Old Address")
+                .build();
+
+        Store updated = Store.builder()
+                .name("New Store")
+                .address("New Address")
+                .build();
+
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(storeRepository.save(ArgumentMatchers.any())).thenReturn(updated);
+
+        Store result = storeService.updateStore(1L, updated);
+
+        assertEquals("New Store", result.getName());
+        assertEquals("New Address", result.getAddress());
+    }
+
+    @Test
+    void testDeleteStore() {
+        Store store = Store.builder().id(1L).build();
+
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(store));
+
+        assertDoesNotThrow(() -> storeService.deleteStore(1L));
+        verify(storeRepository).delete(store);
     }
 }

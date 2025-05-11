@@ -1,6 +1,7 @@
 package com.zerobase.reservation.service.impl;
 
 import com.zerobase.reservation.domain.Reservation;
+import com.zerobase.reservation.domain.ReservationStatus;
 import com.zerobase.reservation.domain.Store;
 import com.zerobase.reservation.domain.User;
 import com.zerobase.reservation.dto.reservation.ReservationRequest;
@@ -12,6 +13,7 @@ import com.zerobase.reservation.service.ReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,7 +58,7 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public boolean existsByReservationDetails(ReservationRequest reservationRequest) {
         // 예약 중복 확인: 동일한 매장, 사용자, 예약 시간에 대해 예약이 존재하는지 확인
-        return reservationRepository.existsByStoreIdAndUserIdAndReservationTime(
+        return reservationRepository.existsByStoreIdAndUserIdAndReservationDate(
                 reservationRequest.getStoreId(),
                 reservationRequest.getUserId(),
                 reservationRequest.getReservationTime()  // reservationTime 사용
@@ -84,6 +86,26 @@ public class ReservationServiceImpl implements ReservationService {
 
         // ReservationResponse 반환
         return ReservationResponse.fromReservation(reservation);
+    }
+
+    @Override
+    public Reservation confirmVisit(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("예약을 찾을 수 없습니다."));
+
+        if(reservation.getStatus() == ReservationStatus.CONFIRMED) {
+            throw new IllegalArgumentException("이미 방문 확인된 예약입니다.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime reservationTime = reservation.getReservationDate();
+
+        if(now.isBefore(reservationTime.minusMinutes(10))) {
+            throw new IllegalArgumentException("방문 가능한 시간이 아닙니다.");
+        }
+
+        reservation.setStatus(ReservationStatus.CONFIRMED);
+        return reservationRepository.save(reservation);
     }
 
 
