@@ -1,10 +1,7 @@
-package com.zerobase.reservation;
+package com.zerobase.reservation.service;
 
 
-import com.zerobase.reservation.domain.Reservation;
-import com.zerobase.reservation.domain.ReservationStatus;
-import com.zerobase.reservation.domain.Store;
-import com.zerobase.reservation.domain.User;
+import com.zerobase.reservation.domain.*;
 import com.zerobase.reservation.dto.reservation.ReservationRequest;
 import com.zerobase.reservation.dto.reservation.ReservationResponse;
 import com.zerobase.reservation.repository.ReservationRepository;
@@ -17,7 +14,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -147,7 +146,7 @@ class ReservationServiceTests {
 
     // 방문 확인 기능 Test
 
-    @Test
+    @Test // 성공
     void testConfirmVisit_Success(){
         Long reservationId = 1L;
         LocalDateTime reservationTime = LocalDateTime.now();
@@ -156,7 +155,7 @@ class ReservationServiceTests {
                 .id(reservationId)
                 .reservationDate(reservationTime)
                 .user(user)
-                .status(ReservationStatus.PENDING)
+                .status(ReservationStatus.APPROVED)
                 .build();
 
         when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
@@ -168,6 +167,7 @@ class ReservationServiceTests {
         verify(reservationRepository).save(reservation);
     }
 
+    // 요청하신 주문이 없습니다.
     @Test
     void testConfirmVisit_ReservationNotFound(){
         Long reservationId = 1L;
@@ -177,6 +177,8 @@ class ReservationServiceTests {
         assertThrows(IllegalArgumentException.class, () -> reservationService.confirmVisit(reservationId));
     }
 
+
+    // 이미 방문 확인된 예약입니다.
     @Test
     void testConfirmVisit_AlreadyVisited(){
         Long reservationId = 1L;
@@ -190,14 +192,15 @@ class ReservationServiceTests {
 
         when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
 
-        assertThrows(IllegalArgumentException.class, () -> reservationService.confirmVisit(reservationId));
+        assertThrows(IllegalStateException.class, () -> reservationService.confirmVisit(reservationId));
     }
 
+    // 방문 확인을 위해 와야되는 시각까지 오지 못한 경우
     @Test
     void testConfirmVisit_OutsideAllowedTime(){
         Long reservationId = 1L;
 
-        LocalDateTime earlyTime = LocalDateTime.now().plusHours(1);
+        LocalDateTime earlyTime = LocalDateTime.now().plusMinutes(12);
 
         Reservation reservation = Reservation.builder()
                 .id(reservationId)
@@ -208,8 +211,59 @@ class ReservationServiceTests {
 
         when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
 
-        assertThrows(IllegalArgumentException.class, () -> reservationService.confirmVisit(reservationId));
+        assertThrows(IllegalStateException.class, () -> reservationService.confirmVisit(reservationId));
     }
+
+    // 점장 예약 승인 거절 기능 Test
+
+    @Test // 점장이 예약의 승인을 성공했습니다.
+    void testRespondToReservation_success_approve() {
+        Partner partner = Partner.builder().id(1L).build();
+        Store store = Store.builder().partner(partner).build();
+        Reservation reservation = Reservation.builder()
+                .id(1L)
+                .status(ReservationStatus.PENDING)
+                .store(store)
+                .build();
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.save(Mockito.<Reservation>any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+
+        Reservation result = reservationService.respondToReservation(1L, 1L, true);
+
+        assertEquals(ReservationStatus.APPROVED, result.getStatus());
+    }
+
+    @Test // 해당 점장이 아닌데 그 예약에 응답하려고 하는 경우 Exception을 반환하는 Test
+    void testRespondToReservation_fail_notOwner() {
+        Partner notOwner = Partner.builder().id(2L).build();
+        Partner actualOwner = Partner.builder().id(1L).build();
+        Store store = Store.builder().id(1L).partner(actualOwner).build();
+        Reservation reservation = Reservation.builder().id(1L).store(store).status(ReservationStatus.PENDING).build();
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+        assertThrows(AccessDeniedException.class, () ->
+                reservationService.respondToReservation(1L, 2L, true) // 2L은 점장이 아님
+        );
+    }
+
+    @Test // 이미 확인된 예약에 대해 재응답하려는 경우
+    void testRespondToReservation_fail_alreadyConfirmed() {
+        Partner owner = Partner.builder().id(1L).build();
+        Store store = Store.builder().id(1L).partner(owner).build();
+        Reservation reservation = Reservation.builder().id(1L).store(store).status(ReservationStatus.CONFIRMED).build();
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+        assertThrows(IllegalStateException.class, () ->
+                reservationService.respondToReservation(1L, 1L, false) // 이미 CONFIRMED 상태
+        );
+    }
+
+
 
 
 }

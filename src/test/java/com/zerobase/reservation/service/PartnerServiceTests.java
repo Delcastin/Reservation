@@ -1,10 +1,9 @@
-package com.zerobase.reservation;
+package com.zerobase.reservation.service;
 
 
 
 import com.zerobase.reservation.domain.Partner;
 import com.zerobase.reservation.repository.PartnerRepository;
-import com.zerobase.reservation.service.PartnerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

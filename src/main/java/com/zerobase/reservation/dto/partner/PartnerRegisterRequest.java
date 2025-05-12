@@ -1,13 +1,14 @@
 package com.zerobase.reservation.dto.partner;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class PartnerRegisterRequest {
 
     private String email;
     private String password;
     private String name;
+    private String phone;
 }

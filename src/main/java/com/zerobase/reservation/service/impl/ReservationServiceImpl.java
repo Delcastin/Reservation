@@ -1,16 +1,15 @@
 package com.zerobase.reservation.service.impl;
 
-import com.zerobase.reservation.domain.Reservation;
-import com.zerobase.reservation.domain.ReservationStatus;
-import com.zerobase.reservation.domain.Store;
-import com.zerobase.reservation.domain.User;
+import com.zerobase.reservation.domain.*;
 import com.zerobase.reservation.dto.reservation.ReservationRequest;
 import com.zerobase.reservation.dto.reservation.ReservationResponse;
 import com.zerobase.reservation.repository.ReservationRepository;
 import com.zerobase.reservation.repository.StoreRepository;
 import com.zerobase.reservation.repository.UserRepository;
 import com.zerobase.reservation.service.ReservationService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -93,8 +92,11 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("예약을 찾을 수 없습니다."));
 
-        if(reservation.getStatus() == ReservationStatus.CONFIRMED) {
-            throw new IllegalArgumentException("이미 방문 확인된 예약입니다.");
+        if(reservation.getStatus() != ReservationStatus.APPROVED) {
+            throw new IllegalStateException("승인된 예약만 방문확인이 가능합니다.");
+        }
+        if(reservation.getStatus() == ReservationStatus.CONFIRMED){
+            throw new IllegalStateException("이미 방문확인된 예약입니다.");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -105,6 +107,25 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         reservation.setStatus(ReservationStatus.CONFIRMED);
+        return reservationRepository.save(reservation);
+    }
+
+    @Override
+    public Reservation respondToReservation(Long reservationId, Long partnerId, boolean approved) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new EntityNotFoundException("예약이 존재하지 않습니다."));
+
+        Partner storeOwner = reservation.getStore().getPartner();
+
+        if(!storeOwner.getId().equals(partnerId)) {
+            throw new AccessDeniedException("해당 매장의 점장만 예약에 응답할 수 있습니다.");
+        }
+
+        if(reservation.getStatus() != ReservationStatus.PENDING) {
+            throw new IllegalStateException("이미 처리된 예약입니다.");
+        }
+
+        reservation.setStatus(approved ? ReservationStatus.APPROVED : ReservationStatus.REJECTED);
         return reservationRepository.save(reservation);
     }
 

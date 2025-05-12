@@ -26,4 +26,6 @@ public interface ReservationService {
     ReservationResponse createReservation(ReservationRequest reservationRequest);
 
     Reservation confirmVisit(Long reservationId);
+
+    Reservation respondToReservation(Long reservationId, Long partnerId, boolean approved);
 }

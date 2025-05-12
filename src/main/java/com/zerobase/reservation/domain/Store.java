@@ -31,6 +31,8 @@ public class Store {
 
     private String description;
 
+    private String phone;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "partner_id")
     private Partner partner;

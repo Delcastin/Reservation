@@ -1,9 +1,6 @@
 package com.zerobase.reservation.service.impl;
 
-import com.zerobase.reservation.domain.Reservation;
-import com.zerobase.reservation.domain.ReservationStatus;
-import com.zerobase.reservation.domain.Review;
-import com.zerobase.reservation.domain.User;
+import com.zerobase.reservation.domain.*;
 import com.zerobase.reservation.repository.ReservationRepository;
 import com.zerobase.reservation.repository.ReviewRepository;
 import com.zerobase.reservation.repository.UserRepository;
@@ -24,7 +21,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
 
-    @Override
+    @Override // 리뷰 작성 기능
     public Review writeReview(Long reservationId, Long userId, String content) {
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new EntityNotFoundException("예약을 찾을 수 없습니다."));
@@ -50,20 +47,35 @@ public class ReviewServiceImpl implements ReviewService {
         return reviewRepository.save(review);
     }
 
-    @Override
+    @Override // 리뷰 수정 기능
     public Review updateReview(Long reviewId, Long userId, String content) {
-        Review review = reviewRepository.findByIdAndUserId(reviewId, userId)
-                .orElseThrow(() -> new AccessDeniedException("본인의 리뷰만 수정할 수 있습니다."));
-
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new EntityNotFoundException("리뷰가 존재하지 않습니다."));
+        
+        if(!review.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("리뷰 작성자만 수정이 가능합니다.");
+        }
+        
         review.setContent(content);
         review.setUpdatedAt(LocalDateTime.now());
         return reviewRepository.save(review);
     }
 
-    @Override
-    public void deleteReview(Long reviewId, Long userId) {
-        Review review = reviewRepository.findByIdAndUserId(reviewId, userId)
-                .orElseThrow(() -> new AccessDeniedException("본인의 리뷰만 삭제할 수 있습니다."));
+    @Override // 리뷰 삭제 기능
+    public void deleteReview(Long reviewId, Long requesterId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new EntityNotFoundException("리뷰를 찾을 수 없습니다."));
+
+        Reservation reservation = review.getReservation();
+        Store store = reservation.getStore();
+        Partner partner = store.getPartner();
+
+        boolean isWriter = review.getUser().getId().equals(requesterId);
+        boolean isStoreOwner = partner.getId().equals(requesterId);
+
+        if(!isWriter && !isStoreOwner) {
+            throw new AccessDeniedException("리뷰 삭제는 작성자 또는 당 매장의 점장만 가능합니다.");
+        }
 
         reviewRepository.delete(review);
     }

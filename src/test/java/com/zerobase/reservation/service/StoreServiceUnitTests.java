@@ -1,4 +1,4 @@
-package com.zerobase.reservation;
+package com.zerobase.reservation.service;
 
 import com.zerobase.reservation.domain.Store;
 import com.zerobase.reservation.repository.PartnerRepository;

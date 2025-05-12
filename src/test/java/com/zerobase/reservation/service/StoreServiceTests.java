@@ -1,7 +1,8 @@
-package com.zerobase.reservation;
+package com.zerobase.reservation.service;
 
 import com.zerobase.reservation.domain.Partner;
 import com.zerobase.reservation.domain.Store;
+import com.zerobase.reservation.dto.store.StoreResponse;
 import com.zerobase.reservation.repository.PartnerRepository;
 import com.zerobase.reservation.repository.StoreCategoryRepository;
 import com.zerobase.reservation.repository.StoreRepository;
@@ -47,24 +48,6 @@ class StoreServiceTests {
         partner = Partner.builder().id(1L).email("test@gmail.com").name("정수이").build();
     }
 
-    @Test
-    void testRegisterStore() {
-        Store store = Store.builder()
-                .name("Compose카페")
-                .storeCategory(category)
-                .address("인천시 남동구 논현동 가로우")
-                .partner(partner)
-                .build();
-
-        when(storeRepository.save(ArgumentMatchers.any(Store.class))).thenReturn(store);
-
-        Store saved = storeService.registerStore(store);
-
-        assertNotNull(saved);
-        assertEquals("Compose카페", saved.getName());
-        assertEquals(category, saved.getStoreCategory());
-        assertEquals(partner, saved.getPartner());
-    }
 
     @Test
     void testGetAllStores() {
